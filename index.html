@@ -60,7 +60,12 @@
             border-radius: 15px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
             margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
+
 
         img {
             max-width: 100%;
@@ -114,7 +119,9 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: auto;
+
+            position: absolute;
+            z-index: 2;
         }
 
         @keyframes spin {
@@ -130,7 +137,12 @@
         .message {
             color: #FF5722;
             font-size: 18px;
-            margin: 20px;
+
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
         }
 
         .backdrop {
@@ -146,16 +158,6 @@
             align-items: center;
             z-index: 1;
             /* Ensure it covers content but is under the spinner/message */
-        }
-
-        .spinner,
-        .message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
-            /* Higher than backdrop to ensure visibility */
         }
 
         .hidden {
@@ -235,6 +237,8 @@
 
 
     <script>
+        const PAGE_SIZE = 100;
+
         document.addEventListener('DOMContentLoaded', () => {
             const messageContainer = document.getElementById('messageContainer');
             const loadingSpinner = document.getElementById('loadingSpinner');
@@ -322,12 +326,13 @@
                     const cleanTitle = DOMPurify.sanitize(item.data[0].title);
                     const cleanDescription = DOMPurify.sanitize(item.data[0].description || 'No description available.');
                     const cleanImageSrc = DOMPurify.sanitize(item.links[0].href);
+                    const cleanImageIndex = DOMPurify.sanitize(index);
 
                     card.innerHTML = `
                         <img src="${cleanImageSrc}" alt="Saved Image" />
                         <h3>${cleanTitle}</h3>
                         <p>${cleanDescription}</p>
-                        <button class="delete-btn" onclick="deleteImage(${index})">Delete</button>
+                        <button class="delete-btn" onclick="deleteImage(${cleanImageIndex})">Delete</button>
                         `;
                     container.appendChild(card);
                 });
@@ -363,15 +368,21 @@
             };
 
 
-            const fetchImage = (url) => {
+            const fetchImage = (url, pageNumber) => {
                 showSpinner(true);
                 showMessage(''); // Clear previous messages
+
+                url += `&page=${pageNumber}`;
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
+                        if (data.reason == "Maximum number of search results have been displayed. Please refine your search.") {
+                            // try running with a lower random page number
+                            fetchRandomImage(url, randomNumber(1, pageNumber-1));
+                        }
                         const items = data.collection.items;
                         if (items.length > 0) {
-                            const randomItem = items[Math.floor(Math.random() * items.length)];
+                            const randomItem = items[randomNumber(0, items.length)];
                             updateImageDisplay(randomItem);
                         } else {
                             showMessage('No images found. Try another search.');
@@ -390,9 +401,18 @@
                     showMessage('Please select at least one interest.');
                     return;
                 }
-                const query = selectedInterests[Math.floor(Math.random() * selectedInterests.length)];
-                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image`;
-                fetchImage(searchUrl);
+                const query = selectedInterests[randomNumber(0, selectedInterests.length)];
+                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image&page_size=1`;
+                // get number of results
+                fetch(searchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        const totalResults = data.collection.metadata.total_hits;
+                        const randomPage = randomNumber(1, totalResults / PAGE_SIZE);
+                        // override the page_size to get a random image
+                        const randomUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image&page_size=${PAGE_SIZE}`;
+                        fetchImage(randomUrl, randomPage);
+                    });
             };
 
             const searchImages = () => {
@@ -401,9 +421,22 @@
                     showMessage('Please enter a search term.');
                     return;
                 }
-                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image`;
-                fetchImage(searchUrl);
+                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image&page_size=1`;
+                // get number of results
+                fetch(searchUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        const totalResults = data.collection.metadata.total_hits;
+                        const randomPage = randomNumber(1, totalResults / PAGE_SIZE);
+                        // override the page_size to get a random image
+                        const randomUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image&page_size=${PAGE_SIZE}`;
+                        fetchImage(randomUrl, randomPage);
+                    });
             };
+
+            function randomNumber(min, max) {
+                return Math.floor(Math.random() * (max - min) + min);
+            }
 
             // Initial call for a random image
             fetchRandomImage();
