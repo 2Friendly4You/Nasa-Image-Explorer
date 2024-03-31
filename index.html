@@ -267,7 +267,7 @@
 
 
     <script>
-        const PAGE_SIZE = 100;
+        const PAGE_SIZE = 10;
 
         document.addEventListener('DOMContentLoaded', () => {
             const messageContainer = document.getElementById('messageContainer');
@@ -398,33 +398,49 @@
             };
 
 
+            let fetchCounter = 0; // Global counter to track the fetch request
+
             const fetchImage = (url, pageNumber) => {
+                const currentFetchId = ++fetchCounter; // Increment the counter for each new fetch request
                 showSpinner(true);
                 showMessage(''); // Clear previous messages
 
-                url += `&page=${pageNumber}`;
+                // Adjust URL for pageNumber
+                if (url.includes('&page=')) {
+                    url = url.replace(/&page=\d+/, `&page=${pageNumber}`);
+                } else {
+                    url += `&page=${pageNumber}`;
+                }
+
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
-                        if (data.reason == "Maximum number of search results have been displayed. Please refine your search.") {
-                            // try running with a lower random page number
-                            fetchRandomImage(url, randomNumber(1, pageNumber - 1));
-                        }
-                        const items = data.collection.items;
-                        if (items.length > 0) {
-                            const randomItem = items[randomNumber(0, items.length)];
-                            updateImageDisplay(randomItem);
+                        // Check if this fetch request is still the latest one
+                        if (currentFetchId !== fetchCounter) return; // If not, ignore this fetch's effects
+
+                        if (data.reason === "Maximum number of search results have been displayed. Please refine your search.") {
+                            // Recursive call with a lower random page number, if this fetch is still the latest one
+                            fetchImage(url, randomNumber(1, pageNumber - 1));
                         } else {
-                            showMessage('No images found. Try another search.');
+                            const items = data.collection.items;
+                            if (items.length > 0) {
+                                const randomItem = items[randomNumber(0, items.length - 1)];
+                                updateImageDisplay(randomItem);
+                            } else {
+                                showMessage('No images found. Try another search.');
+                            }
                         }
                     })
                     .catch(error => {
+                        if (currentFetchId !== fetchCounter) return; // Ignore errors from outdated requests
                         console.error('Error:', error);
                         showMessage('Something went wrong. Please try again.');
                     })
-                    // hide spinner and update backdrop
-                    .finally(() => { showSpinner(false); });
+                    .finally(() => {
+                        if (currentFetchId === fetchCounter) showSpinner(false); // Only hide spinner if this is the latest request
+                    });
             };
+
 
             const fetchRandomImage = () => {
                 if (selectedInterests.length === 0) {
