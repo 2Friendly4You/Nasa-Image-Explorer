@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.11/purify.min.js"></script>
-    <title>Random Nasa Image</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&family=Roboto&display=swap" rel="stylesheet">
+    <title>Nasa Image Explorer</title>
     <style>
         ::-webkit-scrollbar {
             width: 10px;
@@ -25,7 +28,9 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: "Poppins", sans-serif;
+            font-weight: 500;
+            font-style: normal;
             background-color: #0a0a23;
             color: #fff;
             margin: 20px;
@@ -64,6 +69,12 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
+        }
+
+        #imageDescription {
+            text-align: left;
+            max-width: 90%;
+            margin: 20px auto;
         }
 
 
@@ -182,11 +193,20 @@
             padding: 10px;
             margin-bottom: 20px;
             border-radius: 10px;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .saved-image-card p {
+            text-align: left;
+            max-width: 90%;
         }
 
         .saved-image-card img {
             max-width: 90%;
-            max-height: 50vh;
             /* Adjust as necessary */
             border-radius: 5px;
         }
@@ -208,12 +228,20 @@
         .delete-btn:hover {
             background-color: #f44336;
         }
+
+        a {
+            color: #4E5DFF;
+        }
+
+        a:hover {
+            color: #3b4cca;
+        }
     </style>
 </head>
 
 <body>
     <div class="search-container">
-        <h1>Space Image Explorer</h1>
+        <h1>Nasa Image Explorer</h1>
         <input type="text" id="searchInput" placeholder="Search for images (e.g., Mars)"
             style="padding: 10px; width: 80%; margin-bottom: 20px;">
         <button onclick="searchImages()">Search</button>
@@ -224,7 +252,9 @@
     </div>
     <div class="image-display-container">
         <div class="backdrop" hidden></div>
-        <img id="spaceImage" src="" alt="Space Image">
+        <div>
+            <img id="spaceImage" src="" alt="Nasa Image">
+        </div>
         <h2 id="imageTitle">Title</h2>
         <p id="imageDescription">Description</p>
         <div id="loadingSpinner" class="spinner hidden"></div>
@@ -378,7 +408,7 @@
                     .then(data => {
                         if (data.reason == "Maximum number of search results have been displayed. Please refine your search.") {
                             // try running with a lower random page number
-                            fetchRandomImage(url, randomNumber(1, pageNumber-1));
+                            fetchRandomImage(url, randomNumber(1, pageNumber - 1));
                         }
                         const items = data.collection.items;
                         if (items.length > 0) {
