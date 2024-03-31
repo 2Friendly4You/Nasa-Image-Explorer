@@ -110,15 +110,6 @@
             margin: 20px 0;
         }
 
-        .tag {
-            margin: 5px;
-            padding: 5px 10px;
-            display: inline-block;
-            border: 1px solid #fff;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
         .selected {
             background-color: #4E5DFF;
         }
@@ -236,6 +227,53 @@
         a:hover {
             color: #3b4cca;
         }
+
+        .tags-category {
+            margin-bottom: 20px;
+        }
+
+        .tags-category h3 {
+            color: #4E5DFF;
+        }
+
+        .tag {
+            margin: 5px;
+            padding: 5px 10px;
+            display: inline-block;
+            border: 1px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #151534;
+            color: #fff;
+        }
+
+        .tag.selected {
+            background-color: #4E5DFF;
+        }
+
+        .tags-container h3 {
+            color: #4E5DFF;
+            margin-top: 20px;
+        }
+
+        .tags-container {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        #toggleTagsButton {
+            background-color: #4E5DFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #toggleTagsButton:hover {
+            background-color: #3b4cca;
+        }
     </style>
 </head>
 
@@ -245,9 +283,11 @@
         <input type="text" id="searchInput" placeholder="Search for images (e.g., Mars)"
             style="padding: 10px; width: 80%; margin-bottom: 20px;">
         <button onclick="searchImages()">Search</button>
-        <div id="tagsContainer">
-            <!-- Tags will be populated here by JavaScript -->
+        <button id="toggleTagsButton">Show Interests</button>
+        <div id="tagsContainer" class="tags-container" style="display: none;">
+            <!-- Categorized tags will be populated here -->
         </div>
+        <button onclick="resetInterests()">Reset Interests</button>
         <button onclick="fetchRandomImage()">Random Nasa Image</button>
     </div>
     <div class="image-display-container">
@@ -273,30 +313,74 @@
             const messageContainer = document.getElementById('messageContainer');
             const loadingSpinner = document.getElementById('loadingSpinner');
 
-            const defaultInterests = ["space", "mission", "rocket", "mars", "apollo", "astronaut", "moon", "earth", "nebula", "galaxy"];
-            let selectedInterests = JSON.parse(localStorage.getItem('selectedInterests')) || defaultInterests;
+            const categorizedTags = {
+                Planetary: ["mars", "moon", "earth", "planets", "jupiter", "saturn", "neptune", "venus", "mercury", "uranus", "pluto"],
+                Missions: ["apollo", "perseverance", "curiosity", "cassini", "new horizons", "mars rover", "juno", "voyager", "hubble", "james webb"],
+                Spacecraft: ["international space station", "hubble space telescope", "james webb space telescope", "space shuttle", "voyager", "sputnik"],
+                Astronomy: ["nebula", "galaxy", "supernova", "black hole", "star cluster", "constellation", "cosmic dust"],
+                Astronauts: ["astronaut", "cosmonaut", "spacewalk", "eva", "space suit", "space helmet", "space station"],
+                Rockets: ["rocket", "satellite launch", "falcon 9", "space launch system", "atlas v", "soyuz", "saturn v", "falcon heavy"],
+                Organizations: ["nasa", "esa", "roscosmos", "spacex", "blue origin"],
+                Phenomena: ["solar eclipse", "lunar eclipse", "transit", "aurora", "meteor shower", "comet", "asteroid", "meteor", "fireball"],
+                Other: ["space", "universe", "cosmos", "telescope", "observatory", "space exploration", "space science"]
+            };
+
+            let selectedInterests = JSON.parse(localStorage.getItem('selectedInterests')) || [];
+
+            document.getElementById('toggleTagsButton').addEventListener('click', function () {
+                const tagsContainer = document.getElementById('tagsContainer');
+                if (tagsContainer.style.display === "none") {
+                    tagsContainer.style.display = "block"; // Show the container
+                    this.textContent = "Hide Interests"; // Optionally change the button text
+                } else {
+                    tagsContainer.style.display = "none"; // Hide the container
+                    this.textContent = "Show Interests"; // Optionally change the button text
+                }
+            });
+
 
             const updateTags = () => {
                 const container = document.getElementById('tagsContainer');
-                container.innerHTML = ''; // Clear current tags
-                defaultInterests.forEach(interest => {
-                    const tag = document.createElement('span');
-                    tag.className = 'tag' + (selectedInterests.includes(interest) ? ' selected' : '');
-                    tag.textContent = interest;
-                    tag.onclick = () => {
-                        if (selectedInterests.includes(interest)) {
-                            selectedInterests = selectedInterests.filter(i => i !== interest);
-                        } else {
-                            selectedInterests.push(interest);
-                        }
-                        localStorage.setItem('selectedInterests', JSON.stringify(selectedInterests));
-                        updateTags(); // Refresh tags display
-                    };
-                    container.appendChild(tag);
+                container.innerHTML = ''; // Clear current tags before repopulating
+
+                Object.entries(categorizedTags).forEach(([category, tags]) => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'tags-category';
+
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.textContent = category;
+                    categoryDiv.appendChild(categoryTitle);
+
+                    tags.forEach(tag => {
+                        const tagSpan = document.createElement('span');
+                        tagSpan.className = 'tag' + (selectedInterests.includes(tag) ? ' selected' : '');
+                        tagSpan.textContent = tag;
+                        tagSpan.onclick = () => {
+                            if (selectedInterests.includes(tag)) {
+                                selectedInterests = selectedInterests.filter(i => i !== tag);
+                            } else {
+                                selectedInterests.push(tag);
+                            }
+                            localStorage.setItem('selectedInterests', JSON.stringify(selectedInterests));
+                            updateTags(); // Refresh tags display to reflect the current selection
+                        };
+                        categoryDiv.appendChild(tagSpan);
+                    });
+
+                    container.appendChild(categoryDiv);
                 });
             };
 
             updateTags();
+
+            resetInterests = () => {
+                // ask for confirmation before resetting
+                if (confirm('Are you sure you want to reset your interests?')) {
+                    selectedInterests = [];
+                    localStorage.setItem('selectedInterests', JSON.stringify(selectedInterests));
+                    updateTags();
+                }
+            };
 
             function updateBackdrop() {
                 const isSpinnerVisible = !document.getElementById('loadingSpinner').classList.contains('hidden');
