@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Space Image</title>
+    <style>
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #151534;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4E5DFF;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4cca;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a23;
+            color: #fff;
+            margin: 20px;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 40px);
+            /* Adjusted for margin */
+            flex-direction: column;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 700px;
+            width: 90%;
+            background-color: #151534;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            overflow: auto;
+            /* New addition */
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 70vh;
+            /* New addition */
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+        }
+
+        button,
+        input[type="text"] {
+            /* Style input similar to button */
+            background-color: #4E5DFF;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #3b4cca;
+        }
+
+        h2,
+        p {
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .message {
+            color: #FF5722;
+            font-size: 18px;
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Space Image Explorer</h1>
+        <input type="text" id="searchInput" placeholder="Search for images (e.g., Mars)"
+            style="padding: 10px; width: 80%; margin-bottom: 20px;">
+        <button onclick="searchImages()">Search</button>
+        <button onclick="fetchRandomImage()">Random Space Image</button>
+        <img id="spaceImage" src="" alt="Space Image">
+        <h2 id="imageTitle">Title</h2>
+        <p id="imageDescription">Description</p>
+    </div>
+    <div id="loadingSpinner" class="spinner" hidden></div>
+    <div id="messageContainer" class="message" hidden></div>
+
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const interests = ["space", "mission", "rocket", "mars", "apollo", "astronaut", "moon", "earth", "nebula", "galaxy"];
+            const messageContainer = document.getElementById('messageContainer');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            const showSpinner = (show) => {
+                loadingSpinner.hidden = !show;
+            };
+
+            const showMessage = (message) => {
+                messageContainer.innerHTML = `${message} <button onclick="hideMessage()">Close</button>`; // Add Close button
+                messageContainer.hidden = !message; // Hide if message is empty
+            };
+
+            const hideMessage = () => {
+                messageContainer.hidden = true;
+            };
+
+            const updateImageDisplay = (item) => {
+                const imageUrl = item.links[0].href;
+                const imageTitle = item.data[0].title;
+                const imageDescription = item.data[0].description || "No description available.";
+
+                document.getElementById('spaceImage').src = imageUrl;
+                document.getElementById('imageTitle').innerText = imageTitle;
+                document.getElementById('imageDescription').innerText = imageDescription;
+            };
+
+            const fetchImage = (url) => {
+                showSpinner(true);
+                showMessage(''); // Clear previous messages
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        const items = data.collection.items;
+                        if (items.length > 0) {
+                            const randomItem = items[Math.floor(Math.random() * items.length)];
+                            updateImageDisplay(randomItem);
+                        } else {
+                            showMessage('No images found. Try another search.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showMessage('Something went wrong. Please try again.');
+                    })
+                    .finally(() => showSpinner(false));
+            };
+
+            const fetchRandomImage = () => {
+                const query = interests[Math.floor(Math.random() * interests.length)];
+                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image`;
+                fetchImage(searchUrl);
+            };
+
+            const searchImages = () => {
+                const query = document.getElementById('searchInput').value;
+                if (!query.trim()) {
+                    showMessage('Please enter a search term.');
+                    return;
+                }
+                const searchUrl = `https://images-api.nasa.gov/search?q=${query}&media_type=image`;
+                fetchImage(searchUrl);
+            };
+
+            // Initial call for a random image
+            fetchRandomImage();
+
+            // Expose the search function globally
+            window.searchImages = searchImages;
+            window.fetchRandomImage = fetchRandomImage;
+            window.hideMessage = hideMessage;
+        });
+
+    </script>
+</body>
+
+</html>
